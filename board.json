@@ -1,0 +1,149 @@
+{
+  "updatedAt": "2026-02-24T13:15:54.6648023+01:00",
+  "lists": [
+    {
+      "id": "list001",
+      "title": "Rough Future Goals",
+      "taskIds": [
+        "list001-task001",
+        "list001-task002",
+        "list001-task003",
+        "list001-task004",
+        "list001-task005",
+        "list001-task006",
+        "list001-task007"
+      ]
+    },
+    {
+      "id": "list002",
+      "title": "M1 - MVP Stable Beta",
+      "taskIds": [
+        "list002-task001",
+        "list002-task002",
+        "list002-task003",
+        "list002-task004",
+        "list002-task005",
+        "list002-task006",
+        "list002-task007"
+      ]
+    },
+    {
+      "id": "list003",
+      "title": "Backlog",
+      "taskIds": [
+        "list003-task001",
+        "list003-task002",
+        "list003-task003"
+      ]
+    },
+    {
+      "id": "list004",
+      "title": "Working On",
+      "taskIds": []
+    }
+  ],
+  "tasks": {
+    "list001-task007": {
+      "id": "list001-task007",
+      "text": "Tag color system and advanced grouping/pasture extensions",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7454745+01:00"
+    },
+    "list002-task006": {
+      "id": "list002-task006",
+      "text": "Guarantee animal transfer retains notes and history; preserve record continuity (no destructive move)",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list001-task002": {
+      "id": "list001-task002",
+      "text": "Mobile stack decision: FlutterFlow vs React Native vs Draftbit",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7434149+01:00"
+    },
+    "list003-task002": {
+      "id": "list003-task002",
+      "text": "Simplify Bulls main table: show Tag, Birth Date, Status; remove Origin and Sex from main view",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list002-task002": {
+      "id": "list002-task002",
+      "text": "Run bulk workflow test with realistic 50-100 animal batch operations",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list002-task004": {
+      "id": "list002-task004",
+      "text": "Fix or define MVP behavior for adding established ranch bulls outside calving flow",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list001-task003": {
+      "id": "list001-task003",
+      "text": "Backend-centric API layer for heavy business logic and calculations",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7434149+01:00"
+    },
+    "list001-task005": {
+      "id": "list001-task005",
+      "text": "Health file uploads (PDF/images) after MVP",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7434149+01:00"
+    },
+    "list002-task007": {
+      "id": "list002-task007",
+      "text": "Keep scope tight: focus on reliability and fast ranch workflows",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list003-task001": {
+      "id": "list003-task001",
+      "text": "Run transfer integrity tests: Calf/ Bulls/Herd/Grower (notes, status, history)",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list001-task006": {
+      "id": "list001-task006",
+      "text": "Financial tracking, invoice scan, and advanced analytics (later phase)",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7434149+01:00"
+    },
+    "list002-task003": {
+      "id": "list002-task003",
+      "text": "Implement bulk actions: multi-select Mark Sold and bulk transfer to Grower/Herd/Bulls",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list003-task003": {
+      "id": "list003-task003",
+      "text": "Set Calving Book default filter to current year (keep easy switch to previous years)",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list001-task004": {
+      "id": "list001-task004",
+      "text": "AI voice-to-data entry (possible premium feature, not MVP)",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7434149+01:00"
+    },
+    "list002-task001": {
+      "id": "list002-task001",
+      "text": "Core beta goal: stable, secure, field-usable MVP for early testers",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list002-task005": {
+      "id": "list002-task005",
+      "text": "Fix Herd Management birth-date bug (born animals must show birth date, not purchase date)",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7503609+01:00"
+    },
+    "list001-task001": {
+      "id": "list001-task001",
+      "text": "Role management and branch selection menu (post-MVP)",
+      "completed": false,
+      "createdAt": "2026-02-24T13:15:54.7299173+01:00"
+    }
+  }
+}

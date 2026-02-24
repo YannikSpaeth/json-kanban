@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JSON Kanban</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 10px; background:#f3f3f3; }
+    #topbar { display:flex; gap:8px; margin-bottom:10px; align-items:center; }
+    input, button, textarea { padding:6px 8px; font: inherit; }
+    #board { display:flex; gap:10px; align-items:flex-start; overflow:auto; }
+    .list { background:#fff; border:1px solid #ccc; border-radius:6px; width:320px; min-height:180px; padding:8px; }
+    .list h3 { margin:0 0 8px 0; display:flex; justify-content:space-between; gap:6px; align-items:center; }
+    .tasks { min-height:40px; }
+    .task {
+      border:1px solid #ddd;
+      border-radius:6px;
+      background:#fafafa;
+      padding:8px;
+      margin-bottom:8px;
+      cursor:grab;
+      position:relative;
+    }
+    .task.done { opacity:.7; text-decoration:line-through; }
+    .task-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.35;
+      padding-right: 110px;
+      min-height: 18px;
+    }
+    .row { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+    .task-actions {
+      position:absolute;
+      right:6px;
+      top:6px;
+      display:none;
+      gap:4px;
+    }
+    .task:hover .task-actions { display:flex; }
+    .small-btn {
+      font-size:11px;
+      padding:2px 6px;
+      line-height:1.2;
+    }
+    .dropzone { outline:2px dashed #5b9cff; }
+    .new-task-input {
+      width: 100%;
+      min-height: 56px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    .add-task-top { margin-bottom: 8px; }
+    .edit-area {
+      width:100%;
+      min-height:72px;
+      resize:vertical;
+      box-sizing:border-box;
+      margin-top:6px;
+    }
+    small { color:#666; }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <input id="newListTitle" placeholder="New list name" />
+    <button onclick="addList()">Add List</button>
+    <small id="status"></small>
+  </div>
+  <div id="board"></div>
+
+  <script>
+    let board = { lists: [], tasks: {} };
+    let editingTaskId = null;
+    let composingListId = null;
+    let lastSeenUpdatedAt = null;
+
+    const uid = () => Math.random().toString(36).slice(2, 10);
+    const statusEl = document.getElementById('status');
+
+    async function loadBoard(force = false) {
+      try {
+        const res = await fetch('/api/board');
+        const latest = await res.json();
+        const changed = latest.updatedAt !== lastSeenUpdatedAt;
+        if (force || changed) {
+          board = latest;
+          lastSeenUpdatedAt = latest.updatedAt || null;
+          render();
+        }
+      } catch (err) {
+        statusEl.textContent = 'Server offline (start run-kanban.bat)';
+      }
+    }
+
+    async function saveBoard() {
+      statusEl.textContent = 'Saving...';
+      const res = await fetch('/api/board', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(board)
+      });
+      const out = await res.json();
+      if (out && out.updatedAt) {
+        board.updatedAt = out.updatedAt;
+        lastSeenUpdatedAt = out.updatedAt;
+      }
+      statusEl.textContent = 'Saved ' + new Date().toLocaleTimeString();
+    }
+
+    function render() {
+      const root = document.getElementById('board');
+      root.innerHTML = '';
+
+      board.lists.forEach(list => {
+        const listEl = document.createElement('div');
+        listEl.className = 'list';
+        listEl.dataset.listId = list.id;
+
+        const header = document.createElement('h3');
+        const title = document.createElement('span');
+        title.textContent = list.title;
+        title.style.cursor = 'pointer';
+        title.onclick = async () => {
+          const next = prompt('Rename list:', list.title);
+          if (next === null) return;
+          list.title = next.trim() || list.title;
+          render();
+          await saveBoard();
+        };
+
+        const del = document.createElement('button');
+        del.className = 'small-btn';
+        del.textContent = 'Delete list';
+        del.onclick = async () => {
+          if (!confirm('Delete this list? Tasks in it will also be removed.')) return;
+          list.taskIds.forEach(id => delete board.tasks[id]);
+          board.lists = board.lists.filter(l => l.id !== list.id);
+          render();
+          await saveBoard();
+        };
+
+        header.append(title, del);
+
+        const tasksWrap = document.createElement('div');
+        tasksWrap.className = 'tasks';
+        tasksWrap.ondragover = e => { e.preventDefault(); tasksWrap.classList.add('dropzone'); };
+        tasksWrap.ondragleave = () => tasksWrap.classList.remove('dropzone');
+        tasksWrap.ondrop = async e => {
+          e.preventDefault();
+          tasksWrap.classList.remove('dropzone');
+          const taskId = e.dataTransfer.getData('text/taskId');
+          moveTask(taskId, list.id);
+          render();
+          await saveBoard();
+        };
+
+        list.taskIds.forEach(taskId => {
+          const task = board.tasks[taskId];
+          if (!task) return;
+
+          const taskEl = document.createElement('div');
+          taskEl.className = 'task' + (task.completed ? ' done' : '');
+          taskEl.draggable = true;
+          taskEl.ondragstart = e => e.dataTransfer.setData('text/taskId', task.id);
+
+          const text = document.createElement('div');
+          text.className = 'task-text';
+          text.textContent = task.text;
+
+          const actions = document.createElement('div');
+          actions.className = 'task-actions';
+
+          const completeBtn = document.createElement('button');
+          completeBtn.className = 'small-btn';
+          completeBtn.textContent = task.completed ? 'Undo' : 'Done';
+          completeBtn.onclick = async (e) => {
+            e.stopPropagation();
+            task.completed = !task.completed;
+            render();
+            await saveBoard();
+          };
+
+          const editBtn = document.createElement('button');
+          editBtn.className = 'small-btn';
+          editBtn.textContent = 'Edit';
+          editBtn.onclick = (e) => {
+            e.stopPropagation();
+            editingTaskId = task.id;
+            render();
+          };
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'small-btn';
+          removeBtn.textContent = 'X';
+          removeBtn.onclick = async (e) => {
+            e.stopPropagation();
+            if (!confirm('Delete task?')) return;
+            delete board.tasks[task.id];
+            board.lists.forEach(l => l.taskIds = l.taskIds.filter(id => id !== task.id));
+            if (editingTaskId === task.id) editingTaskId = null;
+            render();
+            await saveBoard();
+          };
+
+          actions.append(completeBtn, editBtn, removeBtn);
+
+          taskEl.append(text, actions);
+
+          if (editingTaskId === task.id) {
+            const editArea = document.createElement('textarea');
+            editArea.className = 'edit-area';
+            editArea.value = task.text;
+
+            const editRow = document.createElement('div');
+            editRow.className = 'row';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'small-btn';
+            saveBtn.textContent = 'Save';
+            saveBtn.onclick = async () => {
+              task.text = editArea.value.trim() || task.text;
+              editingTaskId = null;
+              render();
+              await saveBoard();
+            };
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'small-btn';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = () => {
+              editingTaskId = null;
+              render();
+            };
+
+            editRow.append(saveBtn, cancelBtn);
+            taskEl.append(editArea, editRow);
+          }
+
+          tasksWrap.append(taskEl);
+        });
+
+        const addTop = document.createElement('div');
+        addTop.className = 'add-task-top';
+
+        const openComposerBtn = document.createElement('button');
+        openComposerBtn.textContent = 'Add task';
+        openComposerBtn.className = 'small-btn';
+        openComposerBtn.onclick = () => {
+          composingListId = list.id;
+          render();
+        };
+
+        addTop.append(openComposerBtn);
+
+        let composer = null;
+        if (composingListId === list.id) {
+          composer = document.createElement('div');
+          composer.className = 'row';
+
+          const taskInput = document.createElement('textarea');
+          taskInput.className = 'new-task-input';
+          taskInput.placeholder = 'New task (Enter = add, Shift+Enter = new line)';
+          taskInput.dataset.composeFor = list.id;
+
+          const createTask = async () => {
+            const text = taskInput.value.trim();
+            if (!text) return;
+            const id = uid();
+            board.tasks[id] = { id, text, completed: false, createdAt: new Date().toISOString() };
+            list.taskIds.push(id);
+            taskInput.value = '';
+            composingListId = list.id;
+            render();
+            await saveBoard();
+          };
+
+          taskInput.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              await createTask();
+            }
+          });
+
+          taskInput.addEventListener('blur', () => {
+            setTimeout(() => {
+              const active = document.activeElement;
+              if (active === closeBtn) return;
+              composingListId = null;
+              render();
+            }, 0);
+          });
+
+          const closeBtn = document.createElement('button');
+          closeBtn.className = 'small-btn';
+          closeBtn.textContent = 'Close';
+          closeBtn.onclick = () => {
+            composingListId = null;
+            render();
+          };
+
+          composer.append(taskInput, closeBtn);
+        }
+
+        listEl.append(header, addTop);
+        if (composer) listEl.append(composer);
+        listEl.append(tasksWrap);
+        root.append(listEl);
+      });
+
+      if (composingListId) {
+        setTimeout(() => {
+          const input = document.querySelector(`textarea[data-compose-for="${composingListId}"]`);
+          if (input) input.focus();
+        }, 0);
+      }
+    }
+
+    function moveTask(taskId, targetListId) {
+      if (!board.tasks[taskId]) return;
+      board.lists.forEach(l => l.taskIds = l.taskIds.filter(id => id !== taskId));
+      const target = board.lists.find(l => l.id === targetListId);
+      if (!target) return;
+      target.taskIds.push(taskId);
+    }
+
+    async function addList() {
+      const input = document.getElementById('newListTitle');
+      const title = input.value.trim();
+      if (!title) return;
+      board.lists.push({ id: uid(), title, taskIds: [] });
+      input.value = '';
+      render();
+      await saveBoard();
+    }
+
+    loadBoard(true);
+
+    setInterval(async () => {
+      if (editingTaskId || composingListId) return;
+      await loadBoard(false);
+    }, 1000);
+  </script>
+</body>
+</html>
