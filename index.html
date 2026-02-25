@@ -5,60 +5,254 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>JSON Kanban</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 10px; background:#f3f3f3; }
-    #topbar { display:flex; gap:8px; margin-bottom:10px; align-items:center; }
-    input, button, textarea { padding:6px 8px; font: inherit; }
-    #board { display:flex; gap:10px; align-items:flex-start; overflow:auto; }
-    .list { background:#fff; border:1px solid #ccc; border-radius:6px; width:320px; min-height:180px; padding:8px; }
-    .list h3 { margin:0 0 8px 0; display:flex; justify-content:space-between; gap:6px; align-items:center; }
-    .tasks { min-height:40px; }
-    .task {
-      border:1px solid #ddd;
-      border-radius:6px;
-      background:#fafafa;
-      padding:8px;
-      margin-bottom:8px;
-      cursor:grab;
-      position:relative;
+    :root {
+      --bg: #f5f7fb;
+      --bg-accent: #ecf1ff;
+      --surface: #ffffff;
+      --surface-soft: #f8faff;
+      --line: #d9e0f2;
+      --line-strong: #c3cfe9;
+      --text: #1f2a44;
+      --text-soft: #66708a;
+      --primary: #4f79ff;
+      --primary-strong: #3c63e5;
+      --danger: #d7485e;
+      --success: #1f9d63;
+      --shadow: 0 10px 28px rgba(37, 55, 102, 0.08);
+      --shadow-soft: 0 4px 14px rgba(37, 55, 102, 0.08);
+      --radius: 14px;
+      --radius-sm: 10px;
     }
-    .task.done { opacity:.7; text-decoration:line-through; }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 18px;
+      font-family: Inter, Segoe UI, system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 0%, #ffffff 0, #f7f9ff 32%, transparent 60%),
+        linear-gradient(180deg, var(--bg-accent), var(--bg));
+      min-height: 100vh;
+    }
+
+    #topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 14px;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: var(--shadow-soft);
+      border-radius: var(--radius);
+      padding: 10px;
+      backdrop-filter: blur(5px);
+    }
+
+    input, button, textarea {
+      font: inherit;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      transition: all .16s ease;
+    }
+
+    input, textarea {
+      background: #fff;
+      color: var(--text);
+      padding: 8px 10px;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 121, 255, .15);
+      outline: none;
+    }
+
+    button {
+      background: #fff;
+      color: var(--text);
+      border-color: var(--line-strong);
+      padding: 7px 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--primary);
+      color: var(--primary-strong);
+      transform: translateY(-1px);
+    }
+
+    button:active { transform: translateY(0); }
+
+    #topbar > button {
+      background: linear-gradient(180deg, #5f87ff, #4f79ff);
+      color: #fff;
+      border-color: #4f79ff;
+      box-shadow: 0 4px 10px rgba(79, 121, 255, 0.3);
+    }
+
+    #topbar > button:hover {
+      color: #fff;
+      border-color: var(--primary-strong);
+      background: linear-gradient(180deg, #6a90ff, #4b72ef);
+    }
+
+    #newListTitle { min-width: 230px; flex: 1 1 240px; }
+
+    #board {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      overflow: auto;
+      padding: 2px 2px 12px;
+      scroll-padding: 12px;
+    }
+
+    .list {
+      background: linear-gradient(180deg, #fdfefe 0%, #fbfcff 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      width: 320px;
+      min-height: 220px;
+      padding: 10px;
+      box-shadow: var(--shadow-soft);
+      flex: 0 0 320px;
+    }
+
+    .list h3 {
+      margin: 0 0 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      font-size: 15px;
+      letter-spacing: .01em;
+    }
+
+    .list h3 span {
+      padding: 2px 2px;
+      border-radius: 6px;
+    }
+
+    .list h3 span:hover { background: #eef3ff; }
+
+    .tasks {
+      min-height: 64px;
+      padding: 2px;
+      border-radius: var(--radius-sm);
+      transition: background .14s ease;
+    }
+
+    .tasks:empty::before {
+      content: 'Drop tasks here or add a new one';
+      display: block;
+      color: var(--text-soft);
+      font-size: 12px;
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      background: var(--surface-soft);
+      text-align: center;
+    }
+
+    .task {
+      border: 1px solid #dbe3f7;
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: grab;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(37, 55, 102, 0.07);
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+
+    .task:hover {
+      transform: translateY(-1px);
+      border-color: #c4d3f5;
+      box-shadow: 0 6px 14px rgba(37, 55, 102, 0.12);
+    }
+
+    .task.done {
+      opacity: .82;
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+      text-decoration-color: rgba(31, 157, 99, .65);
+      background: #f4fbf7;
+      border-color: #cbe9d9;
+    }
+
     .task-text {
       white-space: pre-wrap;
       word-break: break-word;
-      line-height: 1.35;
-      padding-right: 110px;
+      line-height: 1.4;
+      padding-right: 124px;
       min-height: 18px;
+      font-size: 14px;
     }
-    .row { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+
+    .row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; width: 100%; }
+
     .task-actions {
-      position:absolute;
-      right:6px;
-      top:6px;
-      display:none;
-      gap:4px;
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      display: none;
+      gap: 4px;
     }
-    .task:hover .task-actions { display:flex; }
+
+    .task:hover .task-actions { display: flex; }
+
     .small-btn {
-      font-size:11px;
-      padding:2px 6px;
-      line-height:1.2;
+      font-size: 11px;
+      padding: 3px 7px;
+      line-height: 1.2;
+      border-radius: 8px;
+      background: #f7f9ff;
     }
-    .dropzone { outline:2px dashed #5b9cff; }
+
+    .dropzone {
+      outline: 2px dashed var(--primary);
+      outline-offset: 2px;
+      background: rgba(79, 121, 255, 0.06);
+    }
+
     .new-task-input {
       width: 100%;
       min-height: 56px;
       resize: vertical;
-      box-sizing: border-box;
     }
+
     .add-task-top { margin-bottom: 8px; }
+
     .edit-area {
-      width:100%;
-      min-height:72px;
-      resize:vertical;
-      box-sizing:border-box;
-      margin-top:6px;
+      width: 100%;
+      min-height: 72px;
+      resize: vertical;
+      margin-top: 8px;
+      background: #fff;
     }
-    small { color:#666; }
+
+    small {
+      color: var(--text-soft);
+      background: #f6f8ff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 12px; }
+      #topbar { gap: 8px; }
+      .list { width: 300px; flex-basis: 300px; }
+      .task-text { padding-right: 110px; }
+    }
   </style>
 </head>
 <body>
